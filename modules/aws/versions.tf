@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 5.94"
     }
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">= 4.26"
-    }
     terracurl = {
       source  = "devops-rob/terracurl"
       version = ">= 1.2.1"

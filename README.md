@@ -1,101 +1,167 @@
-# terraform-aviatrix-module-template
+# terraform-aviatrix-mc-gatus
 
-This repository provides standardized instructions and conventions for creating Aviatrix modules.
+## Description
 
-#### Instructions
-1. Create a new repository from this template, by clicking the green "Use this template" button. Make sure to use the [module naming convention](#module-naming-convention)
-2. Clone the repository to your system with ```git clone <repository>```
-5. Edit the repository and commit and update the new repository:
-    - Commit changes: ```git commit -am "Description of changes"```
-    - Push to repository: ```git push origin master```
-6. Update the readme.md file
-    - Remove all content above [the line](#delete-everything-above-and-including-this-line).
-    - Fill out the rest of file based on the provided template.
-7. When ready for release, create a [tag](#tagging).
+Deploys a `VPC` || `VNET` and [Gatus](https://github.com/TwiN/gatus) workload instances across one to three AZs generating traffic to configured destinations/protocols. The root module can deploy to all supported clouds, or any individual cloud with the caveat that the terraform providers for all clouds be configured -- even if that cloud is not selected for deployment. To deploy to a single cloud without passing the providers of all clouds, invoke its submodule directly.
 
-#### Conventions
+All deployed instances conform to the following spec:
 
-###### Repositories
-- For each module, a new reposity shall be created. This is for the purpose of:
-    - Version control per module
-    - Issue handling/feature requests per module
-    - Easier consumption of the module in projects and publication in registers like Terraform Cloud
+| Cloud     | Ubuntu Version | Additionally installed Software | Instance size      |
+| :-------- | :------------- | :------------------------------ | :----------------- |
+| **AWS**   | `24.04`        | `Docker`, `Gatus`               | `t3.nano`          |
+| **Azure** | `24.04`        | `Docker`, `Gatus`               | `Standard_B2ts_v2` |
 
-###### Module Naming convention
-We will use the following convention for naming repositories:
+## Diagram
 
-**terraform-aviatrix-\<cloudname or mc for multi-cloud>-\<function>**
+<img src="img/diagram.png">
 
-Function can be a single word, or more if required to accurately describe the module function. These should be seperated by hyphens. Example:
+## Supported clouds
 
-**terraform-aviatrix-aws-transit-firenet**
+| Cloud  | Supported |
+| :----- | :-------- |
+| AWS    | Yes       |
+| Azure  | Yes       |
+| GCP    | No        |
+| OCI    | No        |
+| Others | No        |
 
-###### Resource Naming convention
-```A naming convention for objects created through our modules needs to be decided upon and inserted here.```
+## Resources required
 
-###### Tagging
-In order to use modules, it is best practice to tag versions when they are ready for consumption. The format to be used for this is "vx.x.x" e.g. v0.0.1. This can be done on Github by clicking "Create a new release". It is also possible to do this from your system. Make sure you committed your changes to the master branch. After that, create a new tag with ```git tag vx.x.x``` and push the tagged version to the tagged branch with ```git push origin vx.x.x```.
+Ensure your CSP quotas allow for the creation of the following resources.
 
-As soon as a module is ready for publishing publicly, the tag release should move up to the first major release. A tag v1.0.0 should be created and the repository can now be altered from a private to a public.
+### AWS
 
-###### Module layout
-The repository contains the default file layout that is recommended to use.
-file | use
-:---|:---
-main.tf | This should contain the resources to be created
-variables.tf | This should contain all expected input variables
-output.tf | This should contain all output objects
+| Resource     | Number | Default |
+| :----------- | :----- | :------ |
+| Public IPs   | 1 to 2 | 2       |
+| VPCs         | 1      | 1       |
+| NAT Gateways | 1      | 1       |
+| vCPUs        | 4 to 8 | 6       |
 
-Diagram images used in the readme.md should be stored on a publicly available environment. E.g. a public s3 bucket. The reason for that is, when publishing these modules at some point (e.g. Terraform Registry), the image source should always be publicly accessible, even though the repository itself might not be.
+### Azure
 
+| Resource     | Number | Default |
+| :----------- | :----- | :------ |
+| Public IPs   | 1 to 2 | 2       |
+| Vnets        | 1      | 1       |
+| NAT Gateways | 1      | 1       |
+| vCPUs        | 4 to 8 | 6       |
 
-#### Delete everything above and including this line
-***
+## Compatibility
 
-# Repository Name
+| Module version | Terraform version | Terraform provider version (AWS) | Terraform provider version (Azure) |
+| :------------- | :---------------- | :------------------------------- | :--------------------------------- |
+| v0.9.0         | >= 1.9.8          | >= 5.94.0                        | >= 4.26.0                          |
 
-### Description
-\<Provide a description of the module>
+## Modules
 
-### Diagram
-\<Provide a diagram of the high level constructs thet will be created by this module>
-<img src="<IMG URL>"  height="250">
+| Name                                                | Source          | Version |
+| --------------------------------------------------- | --------------- | ------- |
+| <a name="module_aws"></a> [aws](#module\_aws)       | ./modules/aws   | n/a     |
+| <a name="module_azure"></a> [azure](#module\_azure) | ./modules/azure | n/a     |
 
-### Compatibility
-Module version | Terraform version | Controller version | Terraform provider version
-:--- | :--- | :--- | :---
-v1.0.2 | 0.12 | 6.1 | 0.2.16
-v1.0.1 | | |
-v1.0.0 | | |
+## Usage Examples
 
-### Usage Example
-```hcl
-module "transit_aws_1" {
-  source  = "terraform-aviatrix-modules/aws-transit/aviatrix"
-  version = "1.0.0"
+The following examples offer snippets of code for calling the module(s). See [examples](https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-gatus/tree/main/examples) for full ready to execute code (personalization required).
 
-  cidr = "10.1.0.0/20"
-  region = "eu-west-1"
-  aws_account_name = "AWS"
+### All supported clouds
+
+```terraform
+module "mc_gatus" {
+  source       = "terraform-aviatrix-modules/mc-gatus/aviatrix"
+  version      = "0.9.0"
+  aws_region   = var.aws_region
+  azure_region = var.azure_region
+}
+output "aws_dashboard" {
+  value = module.mc_gatus.aws_dashboard_public_ip != null ? "http://${module.mc_gatus.aws_dashboard_public_ip}" : null
+}
+output "azure_dashboard" {
+  value = module.mc_gatus.azure_dashboard_public_ip != null ? "http://${module.mc_gatus.azure_dashboard_public_ip}" : null
 }
 ```
 
-### Variables
-The following variables are required:
+### AWS
 
-key | value
-:--- | :---
-\<keyname> | \<description of value that should be provided in this variable>
+```terraform
+module "mc_gatus" {
+  source     = "terraform-aviatrix-modules/mc-gatus/aviatrix/modules/aws"
+  version    = "0.9.0"
+  aws_region = var.aws_region
+}
+output "aws_dashboard" {
+  value = module.mc_gatus.aws_dashboard_public_ip != null ? "http://${module.mc_gatus.aws_dashboard_public_ip}" : null
+}
+```
 
-The following variables are optional:
+### Azure
 
-key | default | value 
-:---|:---|:---
-\<keyname> | \<default value> | \<description of value that should be provided in this variable>
+```terraform
+module "mc_gatus" {
+  source       = "terraform-aviatrix-modules/mc-gatus/aviatrix/modules/azure"
+  version      = "0.9.0"
+  azure_region = var.azure_region
+}
+output "azure_dashboard" {
+  value = module.mc_gatus.azure_dashboard_public_ip != null ? "http://${module.mc_gatus.azure_dashboard_public_ip}" : null
+}
+```
 
-### Outputs
-This module will return the following outputs:
+## Input Variables
 
-key | description
-:---|:---
-\<keyname> | \<description of object that will be returned in this output>
+### Required
+
+The following input variables are required:
+
+<img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> = AWS, <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> = Azure,
+
+#### Root module
+
+| Name                                                                     | Description   | Supported CSPs                                                                                                                         | Type     | Default |             Required              |
+| ------------------------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | :-------------------------------: |
+| <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region)       | AWS region.   | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS">     | `string` | `null`  |  yes, if `clouds` contains `aws`  |
+| <a name="input_azure_region"></a> [azure\_region](#input\_azure\_region) | Azure region. | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string` | `null`  | yes, if `clouds` contains `azure` |
+
+#### Aws submodule
+
+| Name                                                               | Description | Supported CSPs                                                                                                                     | Type     | Default | Required |
+| ------------------------------------------------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | :------: |
+| <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region. | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> | `string` | `null`  |   yes    |
+
+#### Azure submodule
+
+| Name                                                                     | Description   | Supported CSPs                                                                                                                         | Type     | Default | Required |
+| ------------------------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | :------: |
+| <a name="input_azure_region"></a> [azure\_region](#input\_azure\_region) | Azure region. | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string` | `null`  |   yes    |
+
+### Optional
+
+The following input variables are optional:
+
+<img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> = AWS, <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> = Azure, 
+
+| Name                                                                                                  | Description                                                    | Supported CSPs                                                                                                                                                                                                                                                            | Type                | Default                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Required |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
+| <a name="input_name_prefix"></a> [name_prefix](#input\_name_prefix)                                   | Prefix to apply to all resources(s).                           | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string`            | `mc-gatus`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |    no    |
+| <a name="input_clouds"></a> [clouds](#input\_clouds)                                                  | Deploy gatus workloads to these cloud provider(s).             |                                                                                                                                                                                                                                                                           | `list(string)`      | `["aws", "azure"]` (root module only)                                                                                                                                                                                                                                                                                                                                                                                                                         |    no    |
+| <a name="input_aws_cidr"></a> [aws\_cidr](#input\_aws\_cidr)                                          | Aws vpc cidr.                                                  | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS">                                                                                                                                        | `string`            | `"10.1.0.0/24"`                                                                                                                                                                                                                                                                                                                                                                                                                                               |    no    |
+| <a name="input_aws_instance_type"></a> [aws\_instance\_type](#input\_aws\_instance\_type)             | Instance type for the aws instances.                           | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS">                                                                                                                                        | `string`            | `t3.nano`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |    no    |
+| <a name="input_azure_cidr"></a> [azure\_cidr](#input\_azure\_cidr)                                    | Azure vpc cidr.                                                | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure">                                                                                                                                    | `string`            | `"10.2.0.0/24"`                                                                                                                                                                                                                                                                                                                                                                                                                                               |    no    |
+| <a name="input_azure_instance_type"></a> [azure\_instance\_type](#input\_azure\_instance\_type)       | Instance type for the azure instances.                         | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure">                                                                                                                                    | `string`            | `Standard_B2ts_v2`                                                                                                                                                                                                                                                                                                                                                                                                                                            |    no    |
+| <a name="input_dashboard"></a> [dashboard](#input\_dashboard)                                         | Create a dashboard to expose gatus status to the Internet.     | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `bool`              | `true`                                                                                                                                                                                                                                                                                                                                                                                                                                                        |    no    |
+| <a name="input_dashboard_access_cidr"></a> [dashboard\_access\_cidr](#input\_dashboard\_access\_cidr) | CIDR that has http access to the dashboard(s).                 | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string`            | Internet source IP of the executing system                                                                                                                                                                                                                                                                                                                                                                                                                    |    no    |
+| <a name="input_gatus_endpoints"></a> [gatus\_endpoints](#input\_gatus\_endpoints)                     | Gatus endpoints to test.                                       | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `map(list(string))` | <pre>{<br/>  "http": [<br/>    "de.vu",<br/>    "69298.com",<br/>    "tiktock.com",<br/>    "acrilhacrancon.com",<br/>    "blockexplorer.com"<br/>  ],<br/>  "https": [<br/>    "aviatrix.com",<br/>    "aws.amazon.com",<br/>    "www.microsoft.com",<br/>    "cloud.google.com",<br/>    "github.com",<br/>    "thishabboforum.com",<br/>    "malware.net",<br/>    "go.dev",<br/>    "dk-metall.ru"<br/>  ],<br/>  "icmp": [],<br/>  "tcp": []<br/>}</pre> |    no    |
+| <a name="input_gatus_interval"></a> [gatus\_interval](#input\_gatus\_interval)                        | Gatus polling interval.                                        | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `number`            | `10`                                                                                                                                                                                                                                                                                                                                                                                                                                                          |    no    |
+| <a name="input_gatus_version"></a> [gatus\_version](#input\_gatus\_version)                           | Gatus version.                                                 | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string`            | `"5.12.1"`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |    no    |
+| <a name="input_local_user"></a> [local\_user](#input\_local\_user)                                    | Local user to create on the gatus instances.                   | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string`            | `"gatus"`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |    no    |
+| <a name="input_local_user_password"></a> [local\_user\_password](#input\_local\_user\_password)       | Password for the local user on the gatus instances.            | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `string`            | `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                        |    no    |
+| <a name="input_number_of_instances"></a> [number\_of\_instances](#input\_number\_of\_instances)       | Number of gatus instances spread across subnets/azs to create. | <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/aws.png?raw=true" title="AWS"> <img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-transit/blob/main/img/azure.png?raw=true" title="Azure"> | `number`            | `2`                                                                                                                                                                                                                                                                                                                                                                                                                                                           |    no    |
+
+## Outputs
+
+| Name                                                                                                                  | Description                                                       |
+| --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| <a name="output_aws_dashboard_public_ip"></a> [aws\_dashboard\_public\_ip](#output\_aws\_dashboard\_public\_ip)       | Aws Gatus Dashboard  Public IP.                                   |
+| <a name="output_azure_dashboard_public_ip"></a> [azure\_dashboard\_public\_ip](#output\_azure\_dashboard\_public\_ip) | Azure Gatus Dashboard Public IP.                                  |
+| <a name="output_aws_local_user_password"></a> [aws\_local\_user\_password](#output\_local\_user\_password)            | The generated aws random local\_user\_password if not provided.   |
+| <a name="output_azure_local_user_password"></a> [azure\_local\_user\_password](#output\_local\_user\_password)        | The generated azure random local\_user\_password if not provided. |

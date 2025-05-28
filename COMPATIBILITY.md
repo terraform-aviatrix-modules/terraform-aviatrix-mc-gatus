@@ -1,6 +1,5 @@
-#Insert a table with module version compatibility here. E.g.:
-
 ### Compatibility
-Module version | Terraform version | Controller version | Terraform provider version
-:--- | :--- | :--- | :---
-v1.0.0 | >=1.3 | 7.1 | >= 3.1.0
+
+| Module version | Terraform version | Terraform provider version (AWS) | Terraform provider version (Azure) |
+| :------------- | :---------------- | :------------------------------- | :--------------------------------- |
+| v0.9.0         | >= 1.9.8          | >= 5.94.0                        | >= 4.26.0                          |

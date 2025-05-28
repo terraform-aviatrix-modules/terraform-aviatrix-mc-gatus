@@ -1,54 +1,3 @@
-variable "clouds" {
-  description = "Deploy gatus workloads to these cloud provider(s)."
-  type        = list(string)
-  default     = ["aws", "azure"]
-  validation {
-    condition = length([
-      for cloud in var.clouds : true
-      if contains(["aws", "azure"], lower(cloud))
-    ]) == length(var.clouds)
-    error_message = "This module only supports Aws and Azure."
-  }
-}
-
-variable "aws_region" {
-  description = "AWS region."
-  type        = string
-  validation {
-    condition     = contains(data.aws_regions.available.names, var.aws_region)
-    error_message = "AWS region must be specified and valid when AWS is included in the clouds list."
-  }
-}
-
-variable "aws_cidr" {
-  description = "Aws vpc cidr."
-  type        = string
-  default     = "10.1.0.0/24"
-  validation {
-    condition     = can(cidrhost(var.aws_cidr, 0))
-    error_message = "aws_cidr must be valid IPv4 CIDR."
-  }
-}
-
-variable "aws_instance_type" {
-  description = "Instance type for the aws instances."
-  type        = string
-  default     = "t3.nano"
-}
-
-variable "number_of_instances" {
-  description = "Number of gatus instances spread across subnets/azs to create."
-  type        = number
-  default     = 2
-  validation {
-    condition = (
-      var.number_of_instances <= 3 &&
-      var.number_of_instances >= 1
-    )
-    error_message = "number_of_instances must be between 1 and 3."
-  }
-}
-
 variable "azure_region" {
   description = "Azure region."
   type        = string
@@ -78,6 +27,19 @@ variable "azure_instance_type" {
   description = "Instance type for the azure instances."
   type        = string
   default     = "Standard_B2ts_v2"
+}
+
+variable "number_of_instances" {
+  description = "Number of gatus instances spread across subnets/azs to create."
+  type        = number
+  default     = 2
+  validation {
+    condition = (
+      var.number_of_instances <= 3 &&
+      var.number_of_instances >= 1
+    )
+    error_message = "number_of_instances must be between 1 and 3."
+  }
 }
 
 variable "gatus_interval" {
@@ -154,7 +116,7 @@ variable "dashboard_user" {
 }
 
 variable "dashboard_password" {
-  description = "User password for the dashboard."
+  description = "Password for the dashboard."
   type        = string
   default     = null
 }
@@ -185,4 +147,11 @@ variable "name_prefix" {
     condition     = length(var.name_prefix) <= 33 && can(regex("^[0-9a-z-]+$", var.name_prefix))
     error_message = "Name prefix can only contain hyphens, lowercase letters, numbers, and must be 33 characters or less in length."
   }
+}
+
+locals {
+  subnets         = cidrsubnets(var.azure_cidr, [for i in range(var.number_of_instances * 2) : "4"]...)
+  private_subnets = slice(local.subnets, 0, var.number_of_instances)
+  public_subnets  = slice(local.subnets, var.number_of_instances, var.number_of_instances * 2)
+  name_prefix     = "${var.name_prefix}-"
 }

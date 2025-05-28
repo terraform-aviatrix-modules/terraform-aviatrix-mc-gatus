@@ -1,9 +1,5 @@
-Please update this file with information about changes between version and upgrade information.
+# mc-gatus release notes
 
-# module name - release notes
+## 0.9.0
 
-## Release Version
-Describe release
-
-### Feature
-Describe new featue
+### Initial release
