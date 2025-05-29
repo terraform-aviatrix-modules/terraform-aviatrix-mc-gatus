@@ -12,7 +12,7 @@ All deployed instances conform to the following spec:
 
 ## Diagram
 
-<img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-gatus/blob/main/img/diagram.png?raw=true">
+<img src="https://github.com/terraform-aviatrix-modules/terraform-aviatrix-mc-gatus/blob/main/img/azure.png?raw=true">
 
 ## Resources required
 
