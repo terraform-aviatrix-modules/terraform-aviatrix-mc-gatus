@@ -29,7 +29,7 @@ provider "azurerm" {
 # Modules
 module "mc_gatus" {
   source       = "terraform-aviatrix-modules/mc-gatus/aviatrix/azure"
-  version      = "0.9.0"
+  version      = "0.9.1"
 
   azure_region = var.azure_region
 }

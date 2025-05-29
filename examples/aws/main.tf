@@ -23,8 +23,8 @@ provider "aws" {
 }
 # Modules
 module "mc_gatus" {
-  source     = "terraform-aviatrix-modules/mc-gatus/aviatrix/modules/aws"
-  version    = "0.9.0"
+  source     = "terraform-aviatrix-modules/mc-gatus/aviatrix//modules/aws"
+  version    = "0.9.1"
   aws_region = var.aws_region
 }
 # Outputs

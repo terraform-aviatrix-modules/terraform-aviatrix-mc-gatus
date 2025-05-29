@@ -23,8 +23,8 @@ provider "azurerm" {
 }
 # Modules
 module "mc_gatus" {
-  source       = "terraform-aviatrix-modules/mc-gatus/aviatrix/modules/azure"
-  version      = "0.9.0"
+  source       = "terraform-aviatrix-modules/mc-gatus/aviatrix//modules/azure"
+  version      = "0.9.1"
   azure_region = var.azure_region
 }
 # Outputs
